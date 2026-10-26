@@ -58,7 +58,7 @@ const company = (
     .join(""),
   submittedAt: daysAgo(submittedDaysAgo),
   verified,
-  suspensionReason,
+  ...(suspensionReason ? { suspensionReason } : {}),
 });
 
 const job = (
