@@ -26,6 +26,7 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   role: Role;
+  emailVerified?: boolean;
   companyId?: string;
 }
 
