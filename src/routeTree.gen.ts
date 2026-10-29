@@ -9,50 +9,111 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as RegisterCompanyOwnerRouteImport } from './routes/register.company-owner'
+import { Route as RegisterStudentRouteImport } from './routes/register.student'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterCompanyOwnerRoute = RegisterCompanyOwnerRouteImport.update({
+  id: '/register/company-owner',
+  path: '/register/company-owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterStudentRoute = RegisterStudentRouteImport.update({
+  id: '/register/student',
+  path: '/register/student',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/register/company-owner': typeof RegisterCompanyOwnerRoute
+  '/register/student': typeof RegisterStudentRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/register/company-owner': typeof RegisterCompanyOwnerRoute
+  '/register/student': typeof RegisterStudentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/register/company-owner': typeof RegisterCompanyOwnerRoute
+  '/register/student': typeof RegisterStudentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    '/login' | '/verify-email' | '/register/company-owner' | '/register/student'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    '/login' | '/verify-email' | '/register/company-owner' | '/register/student'
+  id:
+    | '__root__'
+    | '/login'
+    | '/verify-email'
+    | '/register/company-owner'
+    | '/register/student'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
+  RegisterCompanyOwnerRoute: typeof RegisterCompanyOwnerRoute
+  RegisterStudentRoute: typeof RegisterStudentRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register/company-owner': {
+      id: '/register/company-owner'
+      path: '/register/company-owner'
+      fullPath: '/register/company-owner'
+      preLoaderRoute: typeof RegisterCompanyOwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register/student': {
+      id: '/register/student'
+      path: '/register/student'
+      fullPath: '/register/student'
+      preLoaderRoute: typeof RegisterStudentRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
+  RegisterCompanyOwnerRoute: RegisterCompanyOwnerRoute,
+  RegisterStudentRoute: RegisterStudentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
