@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/mock/auth";
 
 export const Route = createFileRoute("/verify-email")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { email: string } => ({
     email: typeof search.email === "string" ? search.email : "",
   }),
   head: () => ({
