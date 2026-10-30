@@ -9,7 +9,7 @@ import { DEMO_ACCOUNTS, homeForRole, useAuth } from "@/lib/mock/auth";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
-    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    redirect: typeof search["redirect"] === "string" ? search["redirect"] : undefined,
   }),
   head: () => ({
     meta: [

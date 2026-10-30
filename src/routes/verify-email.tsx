@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/mock/auth";
 
 export const Route = createFileRoute("/verify-email")({
   validateSearch: (search: Record<string, unknown>): { email: string } => ({
-    email: typeof search.email === "string" ? search.email : "",
+    email: typeof search["email"] === "string" ? search["email"] : "",
   }),
   head: () => ({
     meta: [
@@ -44,7 +44,7 @@ function VerifyEmail() {
     try {
       const user = await verifyEmail(email.trim().toLowerCase());
       toast.success("Email verified", { description: "You're all set — sign in to continue." });
-      await navigate({ to: "/login", search: { redirect: undefined } });
+      await navigate({ to: "/login" });
       void user;
     } catch (err) {
       setError((err as Error).message);
