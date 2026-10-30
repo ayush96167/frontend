@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as RegisterCompanyOwnerRouteImport } from './routes/register.company-owner'
 import { Route as RegisterStudentRouteImport } from './routes/register.student'
 
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -36,12 +42,14 @@ const RegisterStudentRoute = RegisterStudentRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/verify-email': typeof VerifyEmailRoute
   '/register/company-owner': typeof RegisterCompanyOwnerRoute
   '/register/student': typeof RegisterStudentRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/verify-email': typeof VerifyEmailRoute
   '/register/company-owner': typeof RegisterCompanyOwnerRoute
@@ -49,6 +57,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/verify-email': typeof VerifyEmailRoute
   '/register/company-owner': typeof RegisterCompanyOwnerRoute
@@ -57,12 +66,21 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/login' | '/verify-email' | '/register/company-owner' | '/register/student'
+    | '/'
+    | '/login'
+    | '/verify-email'
+    | '/register/company-owner'
+    | '/register/student'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/login' | '/verify-email' | '/register/company-owner' | '/register/student'
+    | '/'
+    | '/login'
+    | '/verify-email'
+    | '/register/company-owner'
+    | '/register/student'
   id:
     | '__root__'
+    | '/'
     | '/login'
     | '/verify-email'
     | '/register/company-owner'
@@ -70,6 +88,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   RegisterCompanyOwnerRoute: typeof RegisterCompanyOwnerRoute
@@ -78,6 +97,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -110,6 +136,7 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   RegisterCompanyOwnerRoute: RegisterCompanyOwnerRoute,
