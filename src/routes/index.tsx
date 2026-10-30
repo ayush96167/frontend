@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";
 import { SiteLayout } from "@/components/shared/site";
 import { JobCard } from "@/components/shared/job-card";
@@ -7,7 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCompanies, usePublishedJobs } from "@/lib/mock/queries";
 
-export default function Landing() {
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "HiLabs Careers — Launch your career with verified employers" },
+      { name: "description", content: "Search open roles at verified companies, apply in one click with your saved resume, and track every application in one place." },
+      { property: "og:title", content: "HiLabs Careers — Launch your career with verified employers" },
+      { property: "og:description", content: "Every company is verified before it can post. Search open roles, apply in one click, track everything." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Landing,
+});
+
+function Landing() {
   const jobs = usePublishedJobs();
   const companies = useCompanies();
   const navigate = useNavigate();
