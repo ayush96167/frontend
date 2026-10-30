@@ -20,6 +20,8 @@ export const Route = createFileRoute("/")({
   }),
   component: Landing,
 });
+
+function Landing() {
   const jobs = usePublishedJobs();
   const companies = useCompanies();
   const navigate = useNavigate();
