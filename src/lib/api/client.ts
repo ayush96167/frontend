@@ -1,6 +1,13 @@
 import type { PageInfo } from "./types";
 
-const RAW_BASE = process.env["NEXT_PUBLIC_API_URL"] || "/api/v1";
+const configuredBase = process.env["NEXT_PUBLIC_API_URL"]?.trim();
+const RAW_BASE =
+  configuredBase &&
+  configuredBase.length > 0 &&
+  !configuredBase.includes("77jw") &&
+  !configuredBase.includes("i06h")
+    ? configuredBase
+    : "/api/v1";
 export const API_BASE_URL = RAW_BASE.replace(/\/+$/, "");
 
 let accessToken: string | null = null;
