@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -638,10 +640,10 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean;
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+  // Deterministic width between 50 to 89% (SSR-safe).
+  const id = React.useId();
+  const hash = Array.from(id).reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) % 40, 0);
+  const width = `${hash + 50}%`;
 
   return (
     <div

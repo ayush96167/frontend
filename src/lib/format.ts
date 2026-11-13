@@ -6,16 +6,29 @@ import type {
   RequestStage,
   ResumeParseStatus,
   WorkMode,
-} from "./mock/types";
+} from "./api/types";
 
-export function formatSalary(min: number, max: number, currency: string): string {
-  const symbols: Record<string, string> = { INR: "₹", USD: "$", EUR: "€" };
-  const sym = symbols[currency] ?? currency;
+export function formatSalary(
+  min?: string | number | null,
+  max?: string | number | null,
+  currency = "INR",
+  period?: string | null,
+): string {
+  const minNum = min !== undefined && min !== null && min !== "" ? Number(min) : null;
+  const maxNum = max !== undefined && max !== null && max !== "" ? Number(max) : null;
+  if (minNum === null && maxNum === null) return "Compensation undisclosed";
+
+  const symbols: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+  const sym = symbols[currency] ?? `${currency} `;
   const fmt = (n: number) =>
-    n >= 100000
+    currency === "INR" && n >= 100000
       ? `${sym}${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)}L`
       : `${sym}${n.toLocaleString("en-IN")}`;
-  return `${fmt(min)} – ${fmt(max)}`;
+
+  const suffix = period ? ` / ${period.toLowerCase()}` : "";
+  if (minNum !== null && maxNum !== null) return `${fmt(minNum)} – ${fmt(maxNum)}${suffix}`;
+  if (minNum !== null) return `From ${fmt(minNum)}${suffix}`;
+  return `Up to ${fmt(maxNum!)}${suffix}`;
 }
 
 export function formatDate(iso: string): string {
@@ -70,6 +83,8 @@ export const employmentTypeLabels: Record<EmploymentType, string> = {
   PART_TIME: "Part-time",
   CONTRACT: "Contract",
   INTERNSHIP: "Internship",
+  TEMPORARY: "Temporary",
+  APPRENTICESHIP: "Apprenticeship",
 };
 
 export const jobStatusLabels: Record<JobStatus, string> = {
@@ -91,8 +106,9 @@ export const applicationStatusLabels: Record<ApplicationStatus, string> = {
 };
 
 export const companyStatusLabels: Record<CompanyStatus, string> = {
-  PENDING: "Pending",
-  APPROVED: "Approved",
+  PENDING_ADMIN: "Email verification pending",
+  IN_REVIEW: "Under HiLabs review",
+  ACTIVE: "Active",
   REJECTED: "Rejected",
   SUSPENDED: "Suspended",
 };
@@ -101,6 +117,10 @@ export const requestStageLabels: Record<RequestStage, string> = {
   PENDING: "Pending",
   APPROVED: "Approved",
   REJECTED: "Rejected",
+  EXPIRED: "Expired",
+  REVOKED: "Revoked",
+  ACCEPTED: "Accepted",
+  SUBMITTED: "Submitted",
 };
 
 export const parseStatusLabels: Record<ResumeParseStatus, string> = {

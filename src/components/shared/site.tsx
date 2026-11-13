@@ -1,95 +1,237 @@
-import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { Logo } from "./logo";
-import { useAuth, DEMO_ACCOUNTS } from "@/lib/mock/auth";
+import { homeForRole, useAuth } from "@/lib/api/auth";
 
 const publicNav = [
-  { to: "/jobs", label: "Find jobs" },
-  { to: "/register/company-owner", label: "For companies" },
-  { to: "/login", label: "Sign in" },
+  { href: "/jobs", label: "Open Roles" },
+  { href: "/company/register", label: "For Employers" },
 ];
 
+const emptySubscribe = () => () => {};
+
+function useCurrentYear() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => new Date().getFullYear(),
+    () => 2026,
+  );
+}
+
 export function SiteHeader() {
-  const { user } = useAuth();
+  const { user, ready } = useAuth();
+  const pathname = usePathname();
+  const [openAtPath, setOpenAtPath] = useState<string | null>(null);
+  const menuOpen = openAtPath === pathname;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenAtPath(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Logo />
-        <nav className="flex items-center gap-1 sm:gap-2">
-          {publicNav.slice(0, 2).map((item) => (
+    <header className="fixed inset-x-0 top-0 z-50 h-14 border-b bg-background sm:h-[4.5rem]">
+      <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex items-center gap-6 lg:gap-10">
+          <Logo />
+          <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
+            {publicNav.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className="dt-nav-link inline-flex h-9 items-center px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          {ready && user ? (
             <Link
-              key={item.to}
-              to={item.to}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              activeOptions={{ exact: false }}
+              href={homeForRole(user)}
+              className="dt-btn hidden h-10 items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/85 md:inline-flex"
             >
-              {item.label}
-            </Link>
-          ))}
-          {user ? (
-            <Link
-              to="/student/dashboard"
-              className="ml-1 inline-flex items-center justify-center rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-foreground/85"
-            >
-              My portal
+              Open My Portal
             </Link>
           ) : (
-            <>
+            <div className="hidden items-center gap-2 md:flex">
               <Link
-                to="/login"
-                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                href="/login"
+                aria-current={pathname === "/login" ? "page" : undefined}
+                className="dt-nav-link inline-flex h-9 items-center px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                Sign in
+                Sign In
               </Link>
               <Link
-                to="/register/student"
-                className="inline-flex items-center justify-center rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background transition-colors hover:bg-foreground/85"
+                href="/register/student"
+                className="dt-btn inline-flex h-10 items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/85"
               >
-                Get started
+                Create Student Account
               </Link>
-            </>
+            </div>
           )}
-        </nav>
+
+          <button
+            type="button"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-site-menu"
+            aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+            onClick={() => setOpenAtPath((prev) => (prev === pathname ? null : pathname))}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md border text-foreground transition-colors hover:bg-accent md:hidden"
+          >
+            {menuOpen ? (
+              <X className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Menu className="h-5 w-5" aria-hidden="true" />
+            )}
+          </button>
+        </div>
       </div>
+
+      {menuOpen ? (
+        <div
+          id="mobile-site-menu"
+          className="fixed inset-x-0 top-14 bottom-0 z-40 flex flex-col justify-between overflow-y-auto overscroll-contain border-t bg-background px-4 py-6 sm:top-[4.5rem] sm:px-6 md:hidden"
+        >
+          <nav aria-label="Mobile navigation" className="flex flex-col divide-y">
+            {publicNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpenAtPath(null)}
+                className="flex min-h-12 items-center text-base font-medium text-foreground transition-colors hover:text-brand"
+              >
+                {item.label}
+              </Link>
+            ))}
+            {!user ? (
+              <Link
+                href="/login"
+                onClick={() => setOpenAtPath(null)}
+                className="flex min-h-12 items-center text-base font-medium text-foreground transition-colors hover:text-brand"
+              >
+                Sign In
+              </Link>
+            ) : null}
+          </nav>
+          <div className="border-t pt-5">
+            {ready && user ? (
+              <Link
+                href={homeForRole(user)}
+                onClick={() => setOpenAtPath(null)}
+                className="dt-btn flex h-11 w-full items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/85"
+              >
+                Open My Portal
+              </Link>
+            ) : (
+              <Link
+                href="/register/student"
+                onClick={() => setOpenAtPath(null)}
+                className="dt-btn flex h-11 w-full items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/85"
+              >
+                Create Student Account
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }
 
 export function SiteFooter() {
+  const year = useCurrentYear();
+
   return (
     <footer className="border-t bg-secondary/40">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <Logo />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-            HiLabs Careers connects students and graduates with verified employers — transparent
-            listings, one-click applications and faster hiring.
+            <span translate="no">HiLabs Careers</span> connects students and graduates with verified
+            employers — transparent listings, one-click applications, and faster hiring.
           </p>
         </div>
         <div>
-          <p className="text-sm font-semibold">For students</p>
+          <p className="text-sm font-semibold">For Students</p>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/jobs" className="hover:text-foreground">Browse jobs</Link></li>
-            <li><Link to="/register/student" className="hover:text-foreground">Create account</Link></li>
-            <li><Link to="/student/applications" className="hover:text-foreground">My applications</Link></li>
+            <li>
+              <Link
+                href="/jobs"
+                className="dt-link inline-block min-h-[24px] hover:text-foreground"
+              >
+                Browse Open Roles
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/register/student"
+                className="dt-link inline-block min-h-[24px] hover:text-foreground"
+              >
+                Create Student Account
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/student/applications"
+                className="dt-link inline-block min-h-[24px] hover:text-foreground"
+              >
+                My Applications
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
-          <p className="text-sm font-semibold">For companies</p>
+          <p className="text-sm font-semibold">For Companies</p>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/register/company-owner" className="hover:text-foreground">Register company</Link></li>
-            <li><Link to="/hr/join-company" className="hover:text-foreground">Join as HR</Link></li>
-            <li><Link to="/login" className="hover:text-foreground">Sign in</Link></li>
+            <li>
+              <Link
+                href="/company/register"
+                className="dt-link inline-block min-h-[24px] hover:text-foreground"
+              >
+                Register Company
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/hr/join-company"
+                className="dt-link inline-block min-h-[24px] hover:text-foreground"
+              >
+                Join as HR
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/login"
+                className="dt-link inline-block min-h-[24px] hover:text-foreground"
+              >
+                Sign In
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
       <div className="border-t">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>© {new Date().getFullYear()} HiLabs. All rights reserved.</p>
           <p>
-            Demo accounts:{" "}
-            {DEMO_ACCOUNTS.map((a) => a.email).join(" · ")}
+            © <span className="tabular-nums">{year}</span> <span translate="no">HiLabs</span>. All
+            rights reserved.
           </p>
+          <p>Verified campus hiring &amp; employer portal</p>
         </div>
       </div>
     </footer>
@@ -99,8 +241,13 @@ export function SiteFooter() {
 export function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <SiteHeader />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1 pt-14 outline-none sm:pt-[4.5rem]">
+        {children}
+      </main>
       <SiteFooter />
     </div>
   );
@@ -118,9 +265,11 @@ export function PageHero({
   return (
     <section className="border-b bg-secondary/30">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <h1 className="heading-underline text-3xl font-extrabold tracking-tight sm:text-4xl">{title}</h1>
+        <h1 className="heading-underline text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
         {description ? (
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">{description}</p>
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground">
+            {description}
+          </p>
         ) : null}
         {children}
       </div>

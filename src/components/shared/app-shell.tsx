@@ -1,16 +1,24 @@
-import type { ReactNode } from "react";
-import { Navigate } from "@tanstack/react-router";
+"use client";
+
+import { useEffect, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Loader2, LogOut } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { homeForRole, roleLabel, useAuth } from "@/lib/mock/auth";
+import {
+  displayNameForUser,
+  homeForRole,
+  initialsForUser,
+  roleLabel,
+  useAuth,
+} from "@/lib/api/auth";
 import { Logo } from "./logo";
-import type { AuthUser } from "@/lib/mock/types";
+import type { AuthUser, UserRole } from "@/lib/api/types";
 
 export function FullPageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <Loader2 className="h-6 w-6 animate-spin text-brand" />
+      <Loader2 className="h-6 w-6 animate-spin text-brand" aria-label="Loading" />
     </div>
   );
 }
@@ -20,15 +28,33 @@ export function RequireRole({
   companyId,
   children,
 }: {
-  roles: AuthUser["role"][];
+  roles: UserRole[];
   companyId?: string;
   children: (user: AuthUser) => ReactNode;
 }) {
   const { user, ready } = useAuth();
-  if (!ready) return <FullPageLoader />;
-  if (!user) return <Navigate to="/login" replace />;
-  if (!roles.includes(user.role)) return <Navigate to={homeForRole(user)} replace />;
-  if (companyId && user.companyId !== companyId) return <Navigate to={homeForRole(user)} replace />;
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const hasCompanyMembership =
+    !companyId ||
+    Boolean(user?.memberships.some((m) => m.companyId === companyId && m.status === "ACTIVE"));
+
+  const redirectTo = !ready
+    ? null
+    : !user
+      ? `/login?redirect=${encodeURIComponent(pathname)}`
+      : !roles.includes(user.role) || !hasCompanyMembership
+        ? homeForRole(user)
+        : null;
+
+  useEffect(() => {
+    if (redirectTo) {
+      router.replace(redirectTo);
+    }
+  }, [redirectTo, router]);
+
+  if (!ready || !user || redirectTo) return <FullPageLoader />;
   return <>{children(user)}</>;
 }
 
@@ -50,6 +76,11 @@ export function PortalShell({
   children: ReactNode;
   kicker: string;
 }) {
+  const pathname = usePathname();
+  const displayName = displayNameForUser(user);
+  const initials = initialsForUser(user);
+  const label = roleLabel(user);
+
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
@@ -59,69 +90,71 @@ export function PortalShell({
         <p className="px-5 pt-5 pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
           {kicker}
         </p>
-        <nav className="flex-1 space-y-0.5 px-3 pb-4">
-          {nav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
-              activeProps={{ className: "bg-sidebar-accent text-foreground font-semibold" }}
-              activeOptions={{ exact: false }}
-            >
-              <span className="flex items-center gap-2.5">
-                {item.icon}
-                {item.label}
-              </span>
-              {item.badge ? (
-                <span className="min-w-5 rounded-full bg-brand px-1.5 text-center text-[11px] font-bold text-brand-foreground">
-                  {item.badge}
+        <nav aria-label={kicker} className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
+          {nav.map((item) => {
+            const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
+            return (
+              <Link
+                key={item.to}
+                href={item.to}
+                className={cn(
+                  "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground",
+                  active && "bg-sidebar-accent font-semibold text-foreground",
+                )}
+              >
+                <span className="flex items-center gap-2.5">
+                  {item.icon}
+                  {item.label}
                 </span>
-              ) : null}
-            </Link>
-          ))}
+                {item.badge ? (
+                  <span className="min-w-5 rounded-full bg-brand px-1.5 text-center text-[11px] font-bold text-brand-foreground">
+                    {item.badge}
+                  </span>
+                ) : null}
+              </Link>
+            );
+          })}
         </nav>
         <div className="border-t px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
-              {user.firstName[0]}
-              {user.lastName[0]}
+              {initials}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">
-                {user.firstName} {user.lastName}
+              <p className="truncate text-sm font-semibold">{displayName}</p>
+              <p className="truncate text-xs text-muted-foreground" title={user.email}>
+                {label}
               </p>
-              <p className="truncate text-xs text-muted-foreground">{roleLabel(user.role)}</p>
             </div>
           </div>
           <SignOutButton />
         </div>
       </aside>
       <div className="min-w-0 flex-1">
-        {/* mobile top bar */}
         <div className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur md:hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <Logo />
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              {user.firstName} · {roleLabel(user.role)}
+            <div className="text-xs font-medium text-muted-foreground">
+              {displayName} · {label}
             </div>
           </div>
-          <nav className="flex gap-1 overflow-x-auto px-3 pb-2">
-            {nav.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground",
-                )}
-                activeProps={{
-                  className: "border-brand/30 bg-brand-soft text-brand font-semibold",
-                }}
-                activeOptions={{ exact: false }}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            ))}
+          <nav aria-label={kicker} className="flex gap-1 overflow-x-auto px-3 pb-2">
+            {nav.map((item) => {
+              const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
+              return (
+                <Link
+                  key={item.to}
+                  href={item.to}
+                  className={cn(
+                    "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground",
+                    active && "border-brand/30 bg-brand-soft font-semibold text-brand",
+                  )}
+                >
+                  {item.icon}
+                  {item.label}
+                </Link>
+              );
+            })}
             <SignOutButton mobile />
           </nav>
         </div>
@@ -133,9 +166,13 @@ export function PortalShell({
 
 function SignOutButton({ mobile }: { mobile?: boolean }) {
   const { logout } = useAuth();
+  const router = useRouter();
   return (
     <button
-      onClick={logout}
+      type="button"
+      onClick={() => {
+        void logout().then(() => router.replace("/login"));
+      }}
       className={cn(
         "inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
         mobile ? "mt-0 shrink-0 px-3 py-1.5 text-xs" : "mt-3 w-full px-2 py-2",
@@ -159,7 +196,9 @@ export function PortalPageHeader({
   return (
     <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="heading-underline text-2xl font-extrabold tracking-tight sm:text-3xl">{title}</h1>
+        <h1 className="heading-underline text-2xl font-extrabold tracking-tight sm:text-3xl">
+          {title}
+        </h1>
         {description ? <p className="mt-4 text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {action}

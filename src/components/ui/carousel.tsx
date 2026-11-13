@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -95,11 +97,12 @@ const Carousel = React.forwardRef<
       return;
     }
 
-    onSelect(api);
+    const rafId = requestAnimationFrame(() => onSelect(api));
     api.on("reInit", onSelect);
     api.on("select", onSelect);
 
     return () => {
+      cancelAnimationFrame(rafId);
       api?.off("select", onSelect);
     };
   }, [api, onSelect]);

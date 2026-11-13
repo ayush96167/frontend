@@ -8,12 +8,12 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.next/
+out/
 dist
 dist-ssr
-.output
-.vinxi
-.tanstack/**
-.nitro
+*.tsbuildinfo
+next-env.d.ts
 *.local
 
 # Wrangler / Cloudflare
@@ -30,3 +30,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.taste-skill/

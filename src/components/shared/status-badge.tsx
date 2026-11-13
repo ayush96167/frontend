@@ -37,8 +37,9 @@ const applicationTones: Record<string, BadgeTone> = {
 };
 
 const companyTones: Record<string, BadgeTone> = {
-  PENDING: "warning",
-  APPROVED: "success",
+  PENDING_ADMIN: "warning",
+  IN_REVIEW: "brand",
+  ACTIVE: "success",
   REJECTED: "destructive",
   SUSPENDED: "destructive",
 };
@@ -46,7 +47,11 @@ const companyTones: Record<string, BadgeTone> = {
 const stageTones: Record<string, BadgeTone> = {
   PENDING: "warning",
   APPROVED: "success",
+  ACCEPTED: "success",
+  SUBMITTED: "brand",
   REJECTED: "destructive",
+  EXPIRED: "neutral",
+  REVOKED: "destructive",
 };
 
 const parseTones: Record<string, BadgeTone> = {
@@ -56,19 +61,46 @@ const parseTones: Record<string, BadgeTone> = {
   FAILED: "destructive",
 };
 
+const allDefaultLabels: Record<string, string> = {
+  ...jobStatusLabels,
+  ...applicationStatusLabels,
+  ...companyStatusLabels,
+  ...requestStageLabels,
+  ...parseStatusLabels,
+  QUALIFIED: "Qualified",
+  NOT_QUALIFIED: "Not qualified",
+  AVAILABLE: "Available",
+  CLAIMED: "Claimed",
+};
+
+const allDefaultTones: Record<string, BadgeTone> = {
+  ...jobTones,
+  ...applicationTones,
+  ...companyTones,
+  ...stageTones,
+  ...parseTones,
+  QUALIFIED: "success",
+  NOT_QUALIFIED: "warning",
+  AVAILABLE: "success",
+  CLAIMED: "brand",
+};
+
 export function StatusBadge({
   value,
+  status,
   labels,
   tones,
   className,
 }: {
-  value: string;
-  labels?: Record<string, string>;
-  tones?: Record<string, BadgeTone>;
-  className?: string;
+  value?: string | undefined;
+  status?: string | undefined;
+  labels?: Record<string, string> | undefined;
+  tones?: Record<string, BadgeTone> | undefined;
+  className?: string | undefined;
 }) {
-  const tone = tones?.[value] ?? "neutral";
-  const label = labels?.[value] ?? titleCase(value);
+  const raw = value ?? status ?? "";
+  const tone = tones?.[raw] ?? allDefaultTones[raw] ?? "neutral";
+  const label = labels?.[raw] ?? allDefaultLabels[raw] ?? titleCase(raw);
   return (
     <span
       className={cn(
