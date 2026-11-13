@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_API_BASE_URL = "https://job-portal-api-77jw.onrender.com/api/v1";
+const DEFAULT_API_BASE_URL = "https://job-portal-api-0zl4.onrender.com/api/v1";
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const FORWARDED_REQUEST_HEADERS = [
   "accept",
