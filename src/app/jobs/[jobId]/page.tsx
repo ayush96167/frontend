@@ -13,6 +13,8 @@ import {
   Clock,
   Globe,
   MapPin,
+  AlertCircle,
+  FileWarning,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/shared/site";
@@ -21,7 +23,12 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/api/auth";
-import { useJob, useStudentResumes, useToggleSaveJob } from "@/lib/api/queries";
+import {
+  useJob,
+  useStudentCompletion,
+  useStudentResumes,
+  useToggleSaveJob,
+} from "@/lib/api/queries";
 import { employmentTypeLabels, formatDate, formatSalary, workModeLabels } from "@/lib/format";
 
 export default function JobDetailRoutePage() {
@@ -29,6 +36,7 @@ export default function JobDetailRoutePage() {
   const jobId = params.jobId;
   const { user, ready } = useAuth();
   const jobQuery = useJob(jobId);
+  const completionQuery = useStudentCompletion();
   const resumesQuery = useStudentResumes();
   const toggleSave = useToggleSaveJob();
   const [applyOpen, setApplyOpen] = useState(false);
@@ -40,11 +48,11 @@ export default function JobDetailRoutePage() {
           href="/jobs"
           className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to open roles
+          <ArrowLeft className="size-4" /> Back to open roles
         </Link>
 
         {!ready ? (
-          <div className="h-64 animate-pulse rounded-xl border bg-muted/40" />
+          <div className="h-64 animate-pulse rounded-2xl border bg-muted/40" />
         ) : !user ? (
           <EmptyState
             title="Sign in to view this role"
@@ -52,14 +60,14 @@ export default function JobDetailRoutePage() {
             action={
               <Link
                 href={`/login?redirect=${encodeURIComponent(`/jobs/${jobId}`)}`}
-                className="inline-flex items-center justify-center rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/85"
+                className="dt-btn inline-flex items-center justify-center rounded-lg bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/85"
               >
                 Sign in
               </Link>
             }
           />
         ) : jobQuery.isLoading ? (
-          <div className="h-72 animate-pulse rounded-xl border bg-muted/40" />
+          <div className="h-72 animate-pulse rounded-2xl border bg-muted/40" />
         ) : jobQuery.isError || !jobQuery.data ? (
           <EmptyState
             title="Job listing unavailable"
@@ -69,7 +77,7 @@ export default function JobDetailRoutePage() {
             action={
               <Link
                 href="/jobs"
-                className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold hover:bg-accent"
+                className="dt-btn inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold hover:bg-accent"
               >
                 Browse other roles
               </Link>
@@ -78,24 +86,35 @@ export default function JobDetailRoutePage() {
         ) : (
           (() => {
             const job = jobQuery.data;
+            const completion = completionQuery.data;
+            const resumes = resumesQuery.data ?? [];
+            const hasCleanResume = resumes.some((r) => r.isCurrent || resumes.length > 0);
+            const score = completion?.percentage ?? 0;
+            const applyThreshold = completion?.thresholds.apply ?? 50;
+            const isGatedByCompletion = score < applyThreshold;
+            const isDeadlinePassed = job.applicationDeadline
+              ? new Date(job.applicationDeadline) < new Date()
+              : false;
+
             return (
               <div className="space-y-8">
-                <section className="rounded-xl border bg-card p-6 sm:p-8">
+                {/* Header card with action buttons */}
+                <section className="dt-card rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xs">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusBadge status={job.status} />
                         {job.applied ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-0.5 text-xs font-semibold text-success">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Applied
+                            <CheckCircle2 className="size-3.5" /> Applied
                           </span>
                         ) : null}
                       </div>
-                      <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
+                      <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
                         {job.title}
                       </h1>
                       <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                        <Building2 className="h-4 w-4" />
+                        <Building2 className="size-4" />
                         <span>{job.company?.name ?? "Verified HiLabs partner"}</span>
                         {job.company?.industry ? <span>· {job.company.industry}</span> : null}
                       </p>
@@ -113,40 +132,87 @@ export default function JobDetailRoutePage() {
                             )
                           }
                           disabled={toggleSave.isPending}
+                          className="dt-btn"
                         >
                           {job.saved ? (
                             <>
-                              <BookmarkCheck className="mr-1.5 h-4 w-4 text-brand" /> Saved
+                              <BookmarkCheck className="mr-1.5 size-4 text-brand" /> Saved
                             </>
                           ) : (
                             <>
-                              <Bookmark className="mr-1.5 h-4 w-4" /> Save
+                              <Bookmark className="mr-1.5 size-4" /> Save
                             </>
                           )}
                         </Button>
+
+                        {/* Apply Button Gated by PRD v4 Invariants */}
                         <Button
                           type="button"
                           onClick={() => setApplyOpen(true)}
-                          disabled={Boolean(job.applied) || job.status !== "PUBLISHED"}
+                          disabled={
+                            Boolean(job.applied) ||
+                            job.status !== "PUBLISHED" ||
+                            isDeadlinePassed ||
+                            isGatedByCompletion ||
+                            !hasCleanResume
+                          }
+                          className="dt-btn font-semibold"
                         >
-                          {job.applied ? "Already applied" : "Apply now"}
+                          {job.applied
+                            ? "Already applied"
+                            : isDeadlinePassed
+                              ? "Application Closed"
+                              : isGatedByCompletion
+                                ? `Unlock at ${applyThreshold}% (Current: ${score}%)`
+                                : !hasCleanResume
+                                  ? "Upload Resume to Apply"
+                                  : "Apply now"}
                         </Button>
                       </div>
                     ) : null}
                   </div>
 
-                  <div className="mt-6 grid gap-3 border-t pt-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  {/* Gating helper alerts if student cannot apply */}
+                  {user.role === "STUDENT" && !job.applied && job.status === "PUBLISHED" && (
+                    <div className="mt-4">
+                      {isGatedByCompletion ? (
+                        <div className="flex items-center gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-900 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800">
+                          <AlertCircle className="size-4 shrink-0" />
+                          <span>
+                            Your profile readiness is <strong>{score}%</strong>. Complete your
+                            profile to at least <strong>{applyThreshold}%</strong> to submit
+                            applications.{" "}
+                            <Link href="/student/profile" className="font-semibold underline">
+                              Complete profile now
+                            </Link>
+                          </span>
+                        </div>
+                      ) : !hasCleanResume ? (
+                        <div className="flex items-center gap-2 rounded-xl bg-blue-50 p-3 text-xs text-blue-900 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-200 dark:border-blue-800">
+                          <FileWarning className="size-4 shrink-0" />
+                          <span>
+                            You need an active resume version in your vault to apply.{" "}
+                            <Link href="/student/resumes" className="font-semibold underline">
+                              Upload resume in Resume Vault
+                            </Link>
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  <div className="mt-6 grid gap-3 border-t border-border/70 pt-5 text-sm sm:grid-cols-2 lg:grid-cols-4">
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4 shrink-0" />
+                      <MapPin className="size-4 shrink-0" />
                       <span>{job.locations.join(", ") || "India"}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4 shrink-0" />
+                      <Clock className="size-4 shrink-0" />
                       <span>
                         {employmentTypeLabels[job.employmentType]} · {workModeLabels[job.workMode]}
                       </span>
                     </div>
-                    <div className="font-medium">
+                    <div className="font-medium text-foreground">
                       {job.salary?.visible
                         ? formatSalary(
                             job.salary.min,
@@ -157,7 +223,7 @@ export default function JobDetailRoutePage() {
                         : "Compensation undisclosed"}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4 shrink-0" />
+                      <Calendar className="size-4 shrink-0" />
                       <span>
                         {job.applicationDeadline
                           ? `Deadline ${formatDate(job.applicationDeadline)}`
@@ -167,9 +233,12 @@ export default function JobDetailRoutePage() {
                   </div>
                 </section>
 
-                <section className="space-y-6 rounded-xl border bg-card p-6 sm:p-8">
+                {/* Job Description & Details */}
+                <section className="dt-card space-y-6 rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-xs">
                   <div>
-                    <h2 className="text-lg font-bold tracking-tight">About the role</h2>
+                    <h2 className="text-lg font-bold tracking-tight text-foreground">
+                      About the role
+                    </h2>
                     <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                       {job.description}
                     </p>
@@ -177,7 +246,9 @@ export default function JobDetailRoutePage() {
 
                   {job.responsibilities ? (
                     <div>
-                      <h2 className="text-lg font-bold tracking-tight">Responsibilities</h2>
+                      <h2 className="text-lg font-bold tracking-tight text-foreground">
+                        Responsibilities
+                      </h2>
                       <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                         {job.responsibilities}
                       </p>
@@ -186,7 +257,9 @@ export default function JobDetailRoutePage() {
 
                   {job.qualifications ? (
                     <div>
-                      <h2 className="text-lg font-bold tracking-tight">Qualifications</h2>
+                      <h2 className="text-lg font-bold tracking-tight text-foreground">
+                        Qualifications
+                      </h2>
                       <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                         {job.qualifications}
                       </p>
@@ -195,7 +268,7 @@ export default function JobDetailRoutePage() {
 
                   {job.benefits ? (
                     <div>
-                      <h2 className="text-lg font-bold tracking-tight">Benefits</h2>
+                      <h2 className="text-lg font-bold tracking-tight text-foreground">Benefits</h2>
                       <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                         {job.benefits}
                       </p>
@@ -204,8 +277,8 @@ export default function JobDetailRoutePage() {
 
                   {job.skills.length > 0 ? (
                     <div>
-                      <h2 className="text-lg font-bold tracking-tight">
-                        Required & preferred skills
+                      <h2 className="text-lg font-bold tracking-tight text-foreground">
+                        Required & Preferred Skills
                       </h2>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {job.skills.map((skill) => (
@@ -226,23 +299,24 @@ export default function JobDetailRoutePage() {
                   ) : null}
 
                   {job.company?.website ? (
-                    <div className="border-t pt-4 text-sm">
+                    <div className="border-t border-border/70 pt-4 text-sm">
                       <a
                         href={job.company.website}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 font-medium text-brand hover:underline"
                       >
-                        <Globe className="h-4 w-4" /> Visit employer website
+                        <Globe className="size-4" /> Visit employer website
                       </a>
                     </div>
                   ) : null}
                 </section>
 
+                {/* Application Modal */}
                 {user.role === "STUDENT" ? (
                   <ApplicationModal
                     job={job}
-                    resumes={resumesQuery.data ?? []}
+                    resumes={resumes}
                     open={applyOpen}
                     onClose={() => setApplyOpen(false)}
                   />

@@ -6,7 +6,7 @@ import { RequireRole, PortalPageHeader } from "@/components/shared/app-shell";
 import { StudentPortalShell } from "@/components/shared/portal-nav";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Progress } from "@/components/ui/progress";
+import { ProfileCompletenessWidget } from "@/components/shared/profile-completeness-widget";
 import {
   useSavedJobs,
   useStudentApplications,
@@ -35,108 +35,101 @@ function StudentDashboardBody() {
   const resumes = useStudentResumes();
   const unread = useUnreadNotificationCount();
 
-  const pct = completion.data?.percentage ?? 0;
-
   return (
     <div className="space-y-8">
       <PortalPageHeader
-        title="Student dashboard"
+        title="Student Dashboard"
         description="Track profile readiness, recent applications, and saved roles."
         action={
           <Link
             href="/jobs"
-            className="inline-flex items-center gap-1.5 rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background hover:bg-foreground/85"
+            className="dt-btn inline-flex items-center gap-1.5 rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-background shadow-xs hover:bg-foreground/90 focus:outline-hidden focus:ring-2 focus:ring-brand focus:ring-offset-2"
           >
-            Browse open jobs <ArrowRight className="h-4 w-4" />
+            Browse Open Jobs <ArrowRight className="size-4" />
           </Link>
         }
       />
 
-      <section className="rounded-xl border bg-card p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold">Profile completion</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {completion.data
-                ? `Status: ${completion.data.label.replaceAll("_", " ")} · Apply threshold ${completion.data.thresholds.apply}%`
-                : "Calculating readiness…"}
-            </p>
-          </div>
-          <span className="text-2xl font-extrabold tabular-nums">{pct}%</span>
-        </div>
-        <Progress value={pct} className="mt-3 h-2.5" aria-label="Profile completion percentage" />
-        {(completion.data?.missingSections?.length ?? 0) > 0 ? (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span>Missing: {completion.data?.missingSections.join(", ")}</span>
-            <Link href="/student/profile" className="font-semibold text-brand hover:underline">
-              Complete profile
-            </Link>
-          </div>
-        ) : null}
-      </section>
+      {/* Profile Completeness & Actionable Milestone Checklist (PRD Section 4) */}
+      <ProfileCompletenessWidget completion={completion.data} isLoading={completion.isLoading} />
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Metrics Row */}
+      <section aria-label="Key Metrics" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MetricCard
           href="/student/applications"
-          icon={<Briefcase className="h-4 w-4 text-brand" />}
+          icon={<Briefcase className="size-4 text-brand" />}
           label="Applications"
           value={applications.data?.length ?? 0}
         />
         <MetricCard
           href="/student/saved"
-          icon={<Bookmark className="h-4 w-4 text-brand" />}
-          label="Saved jobs"
+          icon={<Bookmark className="size-4 text-brand" />}
+          label="Saved Jobs"
           value={saved.data?.length ?? 0}
         />
         <MetricCard
           href="/student/resumes"
-          icon={<FileText className="h-4 w-4 text-brand" />}
-          label="Resumes"
+          icon={<FileText className="size-4 text-brand" />}
+          label="Active Resumes"
           value={resumes.data?.length ?? 0}
         />
         <MetricCard
           href="/student/notifications"
-          icon={<Bell className="h-4 w-4 text-brand" />}
-          label="Unread alerts"
+          icon={<Bell className="size-4 text-brand" />}
+          label="Unread Alerts"
           value={unread.data ?? 0}
         />
       </section>
 
-      <section className="rounded-xl border bg-card p-6">
+      {/* Recent Applications Pipeline */}
+      <section className="dt-card rounded-2xl border border-border bg-card p-6 shadow-xs">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-tight">Recent applications</h2>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight text-foreground">
+              Recent Applications
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Keep track of your interview stages and offers.
+            </p>
+          </div>
           <Link
             href="/student/applications"
             className="text-xs font-semibold text-brand hover:underline"
           >
-            View all
+            View All Applications →
           </Link>
         </div>
 
         {applications.isLoading ? (
-          <div className="h-32 animate-pulse rounded-lg bg-muted/40" />
+          <div className="h-32 animate-pulse rounded-xl bg-muted/40" />
         ) : (applications.data ?? []).length === 0 ? (
           <EmptyState
             title="No applications yet"
-            description="When you apply for roles on HiLabs Careers, your progress updates will appear here."
+            description="When you apply for roles on HiLabs Careers, your real-time stage progress will appear here."
             action={
               <Link
                 href="/jobs"
-                className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold hover:bg-accent"
+                className="dt-btn inline-flex items-center justify-center rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold hover:bg-muted"
               >
-                Explore open jobs
+                Explore Open Jobs
               </Link>
             }
           />
         ) : (
-          <div className="divide-y">
+          <div className="divide-y divide-border/60">
             {(applications.data ?? []).slice(0, 5).map((app) => (
-              <div key={app.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div
+                key={app.id}
+                className="flex flex-wrap items-center justify-between gap-3 py-3.5 transition-colors hover:bg-muted/20"
+              >
                 <div>
-                  <Link href={`/jobs/${app.job.id}`} className="font-semibold hover:underline">
+                  <Link
+                    href={`/jobs/${app.job.id}`}
+                    className="font-semibold text-foreground hover:underline"
+                  >
                     {app.job.title}
                   </Link>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     {app.job.companyName} · Applied {formatDate(app.appliedAt)}
                   </p>
                 </div>
@@ -162,12 +155,21 @@ function MetricCard({
   value: number;
 }) {
   return (
-    <Link href={href} className="rounded-xl border bg-card p-5 transition-shadow hover:shadow-sm">
+    <Link
+      href={href}
+      className="dt-card group flex flex-col justify-between rounded-2xl border border-border bg-card p-5 shadow-xs transition-all duration-150 hover:border-brand/40 hover:shadow-sm"
+    >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        {icon}
+        <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+          {label}
+        </span>
+        <div className="flex size-7 items-center justify-center rounded-lg bg-brand-soft/50 group-hover:bg-brand-soft">
+          {icon}
+        </div>
       </div>
-      <p className="mt-3 text-3xl font-extrabold tabular-nums">{value}</p>
+      <p className="mt-4 text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
+        {value}
+      </p>
     </Link>
   );
 }
