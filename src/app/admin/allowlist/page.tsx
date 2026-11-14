@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { RequireRole, PortalPageHeader } from "@/components/shared/app-shell";
 import { AdminPortalShell } from "@/components/shared/portal-nav";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { StudentEmailImport } from "@/components/shared/student-email-import";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,6 +174,8 @@ function AdminAllowlistBody() {
           {addStudent.isPending ? "Adding…" : "Add student"}
         </Button>
       </form>
+
+      <StudentEmailImport />
 
       <section className="space-y-4 rounded-xl border bg-card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { isNavActive } from "@/lib/nav";
 import { Logo } from "./logo";
 import { homeForRole, useAuth } from "@/lib/api/auth";
 
@@ -27,15 +35,54 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [openAtPath, setOpenAtPath] = useState<string | null>(null);
   const menuOpen = openAtPath === pathname;
+  const menuRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setOpenAtPath(null);
+    if (restoreFocus) toggleRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    menuRef.current?.focus();
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenAtPath(null);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMenu(true);
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const focusables = menuRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusables?.length) return;
+
+      const first = focusables.item(0);
+      const last = focusables.item(focusables.length - 1);
+      if (!first || !last) return;
+      const active = document.activeElement;
+
+      if (e.shiftKey && (active === first || active === menuRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [menuOpen]);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [menuOpen, closeMenu]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 h-14 border-b bg-background sm:h-[4.5rem]">
@@ -44,7 +91,7 @@ export function SiteHeader() {
           <Logo />
           <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
             {publicNav.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isActive = isNavActive(pathname, item.href);
               return (
                 <Link
                   key={item.href}
@@ -60,7 +107,12 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {ready && user ? (
+          {!ready ? (
+            <div className="hidden items-center gap-2 md:flex" aria-hidden="true">
+              <span className="h-9 w-16 rounded-md bg-muted" />
+              <span className="h-10 w-48 rounded-md bg-muted" />
+            </div>
+          ) : user ? (
             <Link
               href={homeForRole(user)}
               className="dt-btn hidden h-10 items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/85 md:inline-flex"
@@ -86,6 +138,7 @@ export function SiteHeader() {
           )}
 
           <button
+            ref={toggleRef}
             type="button"
             aria-expanded={menuOpen}
             aria-controls="mobile-site-menu"
@@ -105,23 +158,29 @@ export function SiteHeader() {
       {menuOpen ? (
         <div
           id="mobile-site-menu"
-          className="fixed inset-x-0 top-14 bottom-0 z-40 flex flex-col justify-between overflow-y-auto overscroll-contain border-t bg-background px-4 py-6 sm:top-[4.5rem] sm:px-6 md:hidden"
+          ref={menuRef}
+          tabIndex={-1}
+          className="fixed inset-x-0 top-14 bottom-0 z-40 flex flex-col justify-between overflow-y-auto overscroll-contain border-t bg-background px-4 py-6 outline-none sm:top-[4.5rem] sm:px-6 md:hidden"
         >
           <nav aria-label="Mobile navigation" className="flex flex-col divide-y">
-            {publicNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpenAtPath(null)}
-                className="flex min-h-12 items-center text-base font-medium text-foreground transition-colors hover:text-brand"
-              >
-                {item.label}
-              </Link>
-            ))}
-            {!user ? (
+            {publicNav.map((item) => {
+              const isActive = isNavActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => closeMenu()}
+                  aria-current={isActive ? "page" : undefined}
+                  className="flex min-h-12 items-center text-base font-medium text-foreground transition-colors hover:text-brand"
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            {ready && !user ? (
               <Link
                 href="/login"
-                onClick={() => setOpenAtPath(null)}
+                onClick={() => closeMenu()}
                 className="flex min-h-12 items-center text-base font-medium text-foreground transition-colors hover:text-brand"
               >
                 Sign In
@@ -129,10 +188,12 @@ export function SiteHeader() {
             ) : null}
           </nav>
           <div className="border-t pt-5">
-            {ready && user ? (
+            {!ready ? (
+              <div className="h-11 w-full rounded-md bg-muted" aria-hidden="true" />
+            ) : user ? (
               <Link
                 href={homeForRole(user)}
-                onClick={() => setOpenAtPath(null)}
+                onClick={() => closeMenu()}
                 className="dt-btn flex h-11 w-full items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/85"
               >
                 Open My Portal
@@ -140,7 +201,7 @@ export function SiteHeader() {
             ) : (
               <Link
                 href="/register/student"
-                onClick={() => setOpenAtPath(null)}
+                onClick={() => closeMenu()}
                 className="dt-btn flex h-11 w-full items-center justify-center rounded-md bg-foreground px-4 text-sm font-semibold text-background hover:bg-foreground/85"
               >
                 Create Student Account

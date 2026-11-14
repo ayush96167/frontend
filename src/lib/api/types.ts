@@ -455,6 +455,26 @@ export interface StudentAllowlistEntry {
   createdAt: string;
 }
 
+export interface StudentEmailImportError {
+  row: number;
+  email?: string;
+  code: string;
+  message?: string;
+}
+
+export interface StudentEmailImport {
+  importId: string;
+  status: "PROCESSING" | "COMPLETED" | "COMPLETED_WITH_ERRORS" | "FAILED";
+  totalRows: number;
+  added: number;
+  duplicates: number;
+  invalid: number;
+  errors: StudentEmailImportError[] | null;
+  failureSummary?: string | null;
+  createdAt: string;
+  completedAt?: string | null;
+}
+
 export interface ProgramItem {
   id: string;
   code: string;

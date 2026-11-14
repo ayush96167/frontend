@@ -35,6 +35,7 @@ import type {
   ResumeParseDetail,
   SavedJobItem,
   StudentAllowlistEntry,
+  StudentEmailImport,
   StudentApplication,
   StudentApplicationDetail,
   StudentPreferences,
@@ -398,7 +399,7 @@ export async function uploadFileToR2(
       : file.name.toLowerCase().endsWith(".docx")
         ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         : "application/pdf";
-  const contentType = file.type || fallbackMime;
+  const contentType = purpose === "ALLOWLIST_CSV" ? "text/csv" : file.type || fallbackMime;
 
   const { data: init } = await initFileUpload({
     purpose,
@@ -837,6 +838,24 @@ export async function revokeStudentAllowlistEntry(entryId: string) {
     `/admin/student-allowlist/${entryId}/revocation`,
     { method: "POST" },
   );
+}
+
+export async function createStudentEmailImport(body: {
+  fileId: string;
+  learnerType?: LearnerType;
+  programCode?: string;
+  cohort?: string;
+  batchYear?: number;
+}) {
+  return apiRequest<Pick<StudentEmailImport, "importId" | "status">>("/admin/student-email-imports", {
+    method: "POST",
+    body,
+    idempotent: true,
+  });
+}
+
+export async function getStudentEmailImport(importId: string) {
+  return apiRequest<StudentEmailImport>(`/admin/student-email-imports/${encodeURIComponent(importId)}`);
 }
 
 export async function listPrograms() {

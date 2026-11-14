@@ -100,7 +100,7 @@ function StudentResumesBody() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold tracking-tight text-foreground">
-            Uploaded Versions ({resumes.data?.length ?? 0}/5)
+            Uploaded Versions ({resumes.data?.length ?? 0})
           </h2>
         </div>
 
@@ -172,18 +172,16 @@ function StudentResumesBody() {
                     <Download className="mr-1 size-3" /> Download
                   </Button>
 
-                  {!r.isCurrent && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteResumeId(r.id)}
-                      className="dt-btn text-destructive hover:bg-destructive-soft hover:text-destructive"
-                      aria-label={`Delete ${r.filename}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteResumeId(r.id)}
+                    className="dt-btn text-destructive hover:bg-destructive-soft hover:text-destructive"
+                    aria-label={`Delete ${r.filename}`}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </div>
               </div>
             ))}
@@ -228,7 +226,7 @@ function StudentResumesBody() {
           if (!open) setDeleteResumeId(null);
         }}
         title="Delete Resume Version?"
-        description="Are you sure you want to remove this resume? It will no longer be available for job applications."
+        description="Are you sure you want to remove this resume from your vault? It will no longer be available for new applications. Note: Resumes tied to applications actively under review cannot be deleted."
         confirmLabel="Delete Resume"
         isLoading={deleteMutation.isPending}
         onConfirm={async () => {
